@@ -1,7 +1,7 @@
 {
   "name": "@rnmapbox/maps",
   "description": "A Mapbox react native module for creating custom maps",
-  "version": "10.0.0-beta.15",
+  "version": "10.0.0-beta.16",
   "publishConfig": {
     "access": "public"
   },
@@ -46,7 +46,8 @@
     "@turf/length": "6.5.0",
     "@turf/nearest-point-on-line": "6.5.0",
     "@types/geojson": "^7946.0.7",
-    "debounce": "^1.2.0"
+    "debounce": "^1.2.0",
+    "deprecated-react-native-prop-types": "2.2.0"
   },
   "devDependencies": {
     "@babel/core": "7.17.5",
