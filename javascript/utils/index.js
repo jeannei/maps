@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  View,
-  NativeModules,
-  findNodeHandle,
-  Platform,
-} from 'react-native';
+import { View, NativeModules, findNodeHandle, Platform } from 'react-native';
 import { ViewPropTypes } from 'deprecated-react-native-prop-types';
 import resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource';
 import PropTypes from 'prop-types';
@@ -21,7 +16,15 @@ function getIosManagerInstance(module) {
   return NativeModules[getIOSModuleName(module)];
 }
 
-export const viewPropTypes = ViewPropTypes || View.props;
+const baseViewPropTypes = ViewPropTypes || View.props;
+
+export const viewPropTypes = {
+  ...baseViewPropTypes,
+  /**
+   * React node
+   */
+  children: PropTypes.node,
+};
 
 export const ornamentPositionPropType = PropTypes.oneOfType([
   PropTypes.shape({ top: PropTypes.number, left: PropTypes.number }),
