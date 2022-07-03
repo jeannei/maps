@@ -873,6 +873,7 @@ export interface LightProps extends Omit<ViewProps, 'style'> {
 
 export interface PointAnnotationProps {
   id: string;
+  children?: ReactNode;
   title?: string;
   snippet?: string;
   selected?: boolean;
