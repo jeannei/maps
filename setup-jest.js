@@ -33,6 +33,7 @@ NativeModules.MGLModule = {
     'RegionDidChange',
     'WillStartLoadingMap',
     'DidFinishLoadingMap',
+    'DidFinishRenderingMapFully',
     'DidFailLoadingMap',
     'WillStartRenderingFrame',
     'DidFinishRenderingFrame',
@@ -80,6 +81,7 @@ NativeModules.MGLModule = {
   OfflineCallbackName: keyMirror(['Progress', 'Error']),
 
   // methods
+  setWellKnownTileServer: jest.fn(),
   setAccessToken: jest.fn(),
   getAccessToken: () => Promise.resolve('test-token'),
   setTelemetryEnabled: jest.fn(),

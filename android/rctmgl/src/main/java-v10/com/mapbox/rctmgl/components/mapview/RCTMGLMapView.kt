@@ -3,6 +3,7 @@ package com.mapbox.rctmgl.components.mapview
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.graphics.PointF
+import android.graphics.RectF
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -12,10 +13,12 @@ import com.facebook.react.bridge.WritableNativeArray
 import com.facebook.react.bridge.WritableNativeMap
 import com.mapbox.android.gestures.MoveGestureDetector
 import com.mapbox.geojson.Feature
+import com.mapbox.geojson.FeatureCollection
 import com.mapbox.geojson.Point
 import com.mapbox.maps.*
 import com.mapbox.maps.extension.observable.eventdata.MapLoadingErrorEventData
 import com.mapbox.maps.extension.observable.eventdata.StyleImageMissingEventData
+import com.mapbox.maps.extension.style.expressions.generated.Expression
 import com.mapbox.maps.extension.style.layers.Layer
 import com.mapbox.maps.extension.style.layers.generated.*
 import com.mapbox.maps.extension.style.layers.getLayer
@@ -54,7 +57,7 @@ import org.json.JSONObject
 import java.util.*
 
 
-open class RCTMGLMapView(private val mContext: Context, var mManager: RCTMGLMapViewManager /*, MapboxMapOptions options*/) : MapView(mContext), OnMapClickListener {
+open class RCTMGLMapView(private val mContext: Context, var mManager: RCTMGLMapViewManager /*, MapboxMapOptions options*/) : MapView(mContext), OnMapClickListener, OnMapLongClickListener {
     private val mSources: MutableMap<String, RCTSource<*>>
     private val mImages: MutableList<RCTMGLImages>
     private var mPointAnnotationManager: PointAnnotationManager? = null
@@ -118,7 +121,9 @@ open class RCTMGLMapView(private val mContext: Context, var mManager: RCTMGLMapV
         })
 
         val gesturesPlugin: GesturesPlugin = this.gestures
+        gesturesPlugin.addOnMapLongClickListener(_this)
         gesturesPlugin.addOnMapClickListener(_this)
+
         gesturesPlugin.addOnMoveListener(object : OnMoveListener {
             override fun onMoveBegin(moveGestureDetector: MoveGestureDetector) {
                 mCameraChangeTracker.setReason(CameraChangeTracker.USER_GESTURE)
@@ -417,6 +422,17 @@ open class RCTMGLMapView(private val mContext: Context, var mManager: RCTMGLMapV
         return false
     }
 
+    override fun onMapLongClick(point: Point): Boolean {
+        val _this = this
+        val screenPoint = mMap?.pixelForCoordinate(point)
+        if (screenPoint != null) {
+            val event = MapClickEvent(_this, LatLng(point), screenPoint, EventTypes.MAP_LONG_CLICK)
+            mManager.handleEvent(event)
+        }
+
+        return false
+    }
+
     fun onMarkerClick(symbol: PointAnnotation) {
         mAnnotationClicked = true
         val selectedMarkerID = symbol.id
@@ -685,6 +701,54 @@ open class RCTMGLMapView(private val mContext: Context, var mManager: RCTMGLMapV
         mManager.handleEvent(event)
     }
 
+    fun queryRenderedFeaturesAtPoint(callbackID: String?, point: PointF, filter: Expression?, layerIDs: List<String>?) {
+        mMap?.queryRenderedFeatures(
+            ScreenCoordinate(point.x.toDouble(), point.y.toDouble()),
+            RenderedQueryOptions(layerIDs, filter)
+        ) { features ->
+            if (features.isValue) {
+                val featuresList = ArrayList<Feature?>()
+                for (i in features.value!!) {
+                    featuresList.add(i.feature)
+                }
+
+                val payload: WritableMap = WritableNativeMap()
+                payload.putString("data", FeatureCollection.fromFeatures(featuresList).toJson())
+
+                var event = AndroidCallbackEvent(this, callbackID, payload)
+                mManager.handleEvent(event)
+            } else {
+                Logger.e("queryRenderedFeaturesAtPoint", features.error ?: "n/a")
+            }
+        }
+    }
+
+    fun queryRenderedFeaturesInRect(callbackID: String?, rect: RectF, filter: Expression?, layerIDs: List<String>?) {
+        val screenBox = ScreenBox(
+                ScreenCoordinate(rect.right.toDouble(), rect.bottom.toDouble() ),
+                ScreenCoordinate(rect.left.toDouble(), rect.top.toDouble()),
+        )
+        mMap?.queryRenderedFeatures(
+                RenderedQueryGeometry(screenBox),
+                RenderedQueryOptions(layerIDs, filter)
+        ) { features ->
+            if (features.isValue) {
+                val featuresList = ArrayList<Feature?>()
+                for (i in features.value!!) {
+                    featuresList.add(i.feature)
+                }
+
+                val payload: WritableMap = WritableNativeMap()
+                payload.putString("data", FeatureCollection.fromFeatures(featuresList).toJson())
+
+                var event = AndroidCallbackEvent(this, callbackID, payload)
+                mManager.handleEvent(event)
+            } else {
+                Logger.e("queryRenderedFeaturesInRect", features.error ?: "n/a")
+            }
+        }
+    }
+
     fun queryTerrainElevation(callbackID: String?, longitude: Double, latitude: Double) {
         val result = mMap?.getElevation(Point.fromLngLat(longitude, latitude))
         val payload: WritableMap = WritableNativeMap()
@@ -763,4 +827,6 @@ open class RCTMGLMapView(private val mContext: Context, var mManager: RCTMGLMapV
             }
         })
     }
+
+
 }
